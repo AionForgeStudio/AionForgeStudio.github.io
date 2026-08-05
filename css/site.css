@@ -1220,3 +1220,8 @@ h1, h2, h3 {
     max-width: none;
   }
 }
+
+/* Stage grab interaction */
+.stage-canvas.is-holding {
+  cursor: grabbing !important;
+}
