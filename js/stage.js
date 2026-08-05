@@ -53,8 +53,13 @@ export async function mountStage(canvas, options = {}) {
   controls.target.set(0, 1.2, 0);
   controls.autoRotate = autoRotate;
   controls.autoRotateSpeed = 0.55;
-  // Right-click is reserved for pick-up — disable orbit right-pan
-  controls.mouseButtons.RIGHT = -1;
+  // Reserve right-click (and Mac ctrl-click pan) for pick-up — camera only left-drags
+  controls.enablePan = false;
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: -1,
+  };
   controls.update();
 
   scene.add(new THREE.AmbientLight(0xc8d0e0, 0.7));
@@ -175,9 +180,24 @@ export async function mountStage(canvas, options = {}) {
   /** @type {any|null} */
   let hovered = null;
   let globalMode = 'walk';
+  /** Next plain left-click picks up (Grab button / trackpad fallback) */
+  let grabArmed = false;
 
   updateHud(focused);
   setHintDefault();
+
+  const grabBtn = document.getElementById('stage-grab-btn');
+  if (grabBtn) {
+    grabBtn.addEventListener('click', () => {
+      grabArmed = !grabArmed;
+      grabBtn.classList.toggle('is-active', grabArmed);
+      if (hintEl) {
+        hintEl.textContent = grabArmed
+          ? 'Grab armed — left-click a model to pick it up. Click Grab again to cancel.'
+          : 'Left-click focus · right-click pick up · drag orbit · scroll zoom.';
+      }
+    });
+  }
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -193,16 +213,30 @@ export async function mountStage(canvas, options = {}) {
   function hitActor(ev) {
     setPointerFromEvent(ev);
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(
-      actors.map((a) => a.wrapper),
-      true
-    );
+    // Prefer dedicated pick proxies (larger, reliable), then full mesh
+    const proxies = actors.map((a) => a.pickProxy).filter(Boolean);
+    let hits = raycaster.intersectObjects(proxies, false);
+    if (!hits.length) {
+      hits = raycaster.intersectObjects(
+        actors.map((a) => a.wrapper),
+        true
+      );
+    }
     if (!hits.length) return null;
     let obj = hits[0].object;
     while (obj && !obj.userData.actorId) obj = obj.parent;
     if (!obj) return null;
     return actors.find((a) => a.id === obj.userData.actorId) || null;
   }
+
+  /** True right-click, or Mac ctrl/meta+click used as secondary click */
+  function isPickButton(ev) {
+    return (
+      ev.button === 2 ||
+      (ev.button === 0 && (ev.ctrlKey || ev.metaKey))
+    );
+  }
+
 
   function groundPointFromEvent(ev, height = 0) {
     setPointerFromEvent(ev);
@@ -275,57 +309,76 @@ export async function mountStage(canvas, options = {}) {
   function setHintDefault() {
     if (!hintEl) return;
     hintEl.textContent =
-      'Left-click focus · right-click pick up · drag orbit · scroll zoom.';
+      'Right-click (or Grab + left-click) to pick up · left-drag orbits · Esc drops.';
   }
 
-  // Prevent browser context menu on stage
-  canvas.addEventListener('contextmenu', (ev) => {
-    ev.preventDefault();
-  });
+  // Capture phase: run before OrbitControls so right-click never pans
+  function onPointerDownCapture(ev) {
+    if (!isPickButton(ev)) return;
 
-  canvas.addEventListener('pointerdown', (ev) => {
-    // Right button = pick / drop
-    if (ev.button === 2) {
-      ev.preventDefault();
-      const actor = hitActor(ev);
-      if (held) {
-        // Right-click while holding: drop (even if clicking another model)
-        // If clicking a different model, drop then pick that one
-        if (actor && actor !== held) {
-          dropHeld();
-          pickUp(actor, ev);
-        } else {
-          dropHeld();
-        }
-        return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+    const actor = hitActor(ev);
+
+    if (held) {
+      if (actor && actor !== held) {
+        dropHeld();
+        pickUp(actor, ev);
+      } else {
+        dropHeld();
       }
-      if (actor) pickUp(actor, ev);
       return;
     }
 
-    // Left button = focus + action (not while holding — holding uses left only for orbit)
-    if (ev.button === 0) {
-      if (held) return; // let orbit work while carrying
-      const actor = hitActor(ev);
-      if (!actor) return;
-      focused = actor;
-      actor.playAction();
-      updateHud(focused);
-      controls.target.lerp(
-        new THREE.Vector3(actor.wrapper.position.x, 1.2, actor.wrapper.position.z),
-        0.65
-      );
+    if (actor) pickUp(actor, ev);
+  }
+
+  canvas.addEventListener('contextmenu', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+  });
+
+  canvas.addEventListener('pointerdown', onPointerDownCapture, true);
+
+  canvas.addEventListener('pointerdown', (ev) => {
+    // Plain left-click (ctrl/meta+click is pick on Mac via capture handler)
+    if (ev.button !== 0 || ev.ctrlKey || ev.metaKey) return;
+
+    // If already holding, left-click drops at cursor (easier than right-click)
+    if (held) {
+      dropHeld();
+      return;
     }
+
+    const actor = hitActor(ev);
+    if (!actor) return;
+
+    // Grab mode: left-click picks up
+    if (grabArmed) {
+      grabArmed = false;
+      if (grabBtn) grabBtn.classList.remove('is-active');
+      pickUp(actor, ev);
+      return;
+    }
+
+    focused = actor;
+    actor.playAction();
+    updateHud(focused);
+    controls.target.lerp(
+      new THREE.Vector3(actor.wrapper.position.x, 1.2, actor.wrapper.position.z),
+      0.65
+    );
   });
 
   canvas.addEventListener('pointermove', (ev) => {
-    // Hover highlight when not holding
     if (!held) {
       const actor = hitActor(ev);
       if (hovered && hovered !== actor) hovered.setHovered(false);
       if (actor && actor !== hovered) actor.setHovered(true);
       hovered = actor;
-      canvas.style.cursor = actor ? 'pointer' : '';
+      canvas.style.cursor = actor ? 'grab' : '';
     } else {
       const pt = groundPointFromEvent(ev, HOLD_HEIGHT);
       if (pt) holdTarget.copy(pt);
@@ -439,6 +492,21 @@ async function createActor(entry, index, total) {
   const wrapper = new THREE.Group();
   wrapper.add(pivot);
   wrapper.userData.actorId = entry.id;
+
+  // Large invisible pick volume so right-click is easy to hit
+  const pickProxy = new THREE.Mesh(
+    new THREE.SphereGeometry(entry.kind === 'weapon' ? 0.9 : 1.15, 16, 12),
+    new THREE.MeshBasicMaterial({
+      visible: false,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    })
+  );
+  pickProxy.position.y = entry.kind === 'weapon' ? 1.1 : 0.95;
+  pickProxy.userData.actorId = entry.id;
+  pickProxy.name = 'pickProxy';
+  wrapper.add(pickProxy);
 
   const angle = (index / Math.max(total, 1)) * Math.PI * 1.1 - Math.PI * 0.55;
   const radius = 2.0 + index * 0.2;
@@ -564,6 +632,7 @@ async function createActor(entry, index, total) {
     name: entry.name,
     role: entry.role,
     wrapper,
+    pickProxy,
     isHeld() {
       return held;
     },
