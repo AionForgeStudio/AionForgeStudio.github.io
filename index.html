@@ -61,7 +61,7 @@
         <div class="section-head reveal">
           <span class="section-kicker">Live workbench</span>
           <h2>Play with the models</h2>
-          <p>Real Bedrock geometry — left-click to focus, right-click to pick up and place.</p>
+          <p>Click any model to pick it up, drag to place, release to drop. Drag empty space to look around.</p>
         </div>
         <div class="stage-shell reveal" id="stage-shell">
           <canvas class="stage-canvas" id="forge-stage" aria-label="Interactive AionForge 3D model stage"></canvas>
@@ -76,7 +76,7 @@
                 <button type="button" data-stage-mode="walk" class="is-active">Walk</button>
                 <button type="button" data-stage-mode="idle">Idle</button>
                 <button type="button" data-stage-mode="action">Action</button>
-                <button type="button" id="stage-grab-btn" title="Next left-click picks up a model">Grab</button>
+                <button type="button" id="stage-grab-btn" title="Click any model to pick it up">Pick tip</button>
               </div>
             </div>
             <div class="stage-bottom">
@@ -84,7 +84,7 @@
                 <strong id="stage-name">Loading…</strong>
                 <span id="stage-role">Preparing models</span>
               </div>
-              <p class="stage-hint" id="stage-hint">Left-click focus · right-click pick up · drag to orbit · scroll zoom.</p>
+              <p class="stage-hint" id="stage-hint">Click model to grab · drag & release to place · drag empty space to orbit.</p>
             </div>
           </div>
           <div class="stage-fallback" id="stage-fallback">
@@ -331,7 +331,7 @@
   </script>
 
   <script type="module">
-    import { mountStage } from './js/stage.js';
+    import { mountStage } from './js/stage.js?v=grab3';
     const canvas = document.getElementById('forge-stage');
     const shell = document.getElementById('stage-shell');
     const fallback = document.getElementById('stage-fallback');

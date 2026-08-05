@@ -1,11 +1,15 @@
 /**
  * Interactive AionForge model stage.
- * - Left-click: focus + action pose
- * - Right-click: pick up / drop (drag with cursor, no physics)
- * - Walk / idle / action modes
+ *
+ * Pointer model (simple, no physics, no OrbitControls fight):
+ * - Press on a model (left OR right) → pick it up
+ * - Drag while held → move it on the ground plane
+ * - Release → drop
+ * - Drag empty space (left) → orbit camera
+ * - Scroll → zoom
+ * - Esc → drop if held
  */
 import * as THREE from './vendor/three.module.js';
-import { OrbitControls } from './vendor/OrbitControls.js';
 import {
   loadBedrockModel,
   loadAnimation,
@@ -14,14 +18,9 @@ import {
 
 const DEG = Math.PI / 180;
 const ARENA_RADIUS = 3.5;
-const HOLD_HEIGHT = 1.15;
+const HOLD_HEIGHT = 1.05;
 
 export async function mountStage(canvas, options = {}) {
-  const {
-    manifestUrl = 'assets/models/manifest.json',
-    autoRotate = false,
-  } = options;
-
   if (!canvas) throw new Error('Stage canvas missing');
   if (!window.WebGLRenderingContext) throw new Error('WebGL not available');
 
@@ -42,45 +41,49 @@ export async function mountStage(canvas, options = {}) {
   scene.fog = new THREE.FogExp2(0x0b0e14, 0.04);
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 200);
-  camera.position.set(5.2, 3.0, 7.0);
-
-  const controls = new OrbitControls(camera, canvas);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.07;
-  controls.minDistance = 2;
-  controls.maxDistance = 16;
-  controls.maxPolarAngle = Math.PI * 0.49;
-  controls.target.set(0, 1.2, 0);
-  controls.autoRotate = autoRotate;
-  controls.autoRotateSpeed = 0.55;
-  // Reserve right-click (and Mac ctrl-click pan) for pick-up — camera only left-drags
-  controls.enablePan = false;
-  controls.mouseButtons = {
-    LEFT: THREE.MOUSE.ROTATE,
-    MIDDLE: THREE.MOUSE.DOLLY,
-    RIGHT: -1,
+  // Spherical orbit state (custom — no OrbitControls)
+  const orbit = {
+    target: new THREE.Vector3(0, 1.05, 0),
+    radius: 8.2,
+    theta: 0.55, // horizontal
+    phi: 1.15, // vertical
+    minRadius: 2.2,
+    maxRadius: 16,
+    minPhi: 0.25,
+    maxPhi: Math.PI * 0.48,
   };
-  controls.update();
+
+  function applyOrbit() {
+    const { target, radius, theta, phi } = orbit;
+    camera.position.set(
+      target.x + radius * Math.sin(phi) * Math.sin(theta),
+      target.y + radius * Math.cos(phi),
+      target.z + radius * Math.sin(phi) * Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+  applyOrbit();
 
   scene.add(new THREE.AmbientLight(0xc8d0e0, 0.7));
-
   const key = new THREE.DirectionalLight(0xfff2dd, 1.25);
   key.position.set(5, 10, 4);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
   const sc = key.shadow.camera;
-  sc.near = 1; sc.far = 30;
-  sc.left = -10; sc.right = 10; sc.top = 10; sc.bottom = -10;
+  sc.near = 1;
+  sc.far = 30;
+  sc.left = -10;
+  sc.right = 10;
+  sc.top = 10;
+  sc.bottom = -10;
   scene.add(key);
 
   const cyan = new THREE.PointLight(0x3ec8ff, 1.6, 20, 2);
   cyan.position.set(-3.2, 2.4, 2.2);
   scene.add(cyan);
-
   const amber = new THREE.PointLight(0xf0a030, 1.2, 18, 2);
   amber.position.set(3.6, 2.0, -1.8);
   scene.add(amber);
-
   scene.add(new THREE.HemisphereLight(0x9eb6ff, 0x1a1520, 0.45));
 
   const ground = new THREE.Mesh(
@@ -93,18 +96,7 @@ export async function mountStage(canvas, options = {}) {
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
-  ground.name = 'ground';
   scene.add(ground);
-
-  // Invisible larger plane for reliable drag raycasts
-  const dragPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 40),
-    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
-  );
-  dragPlane.rotation.x = -Math.PI / 2;
-  dragPlane.position.y = 0.02;
-  dragPlane.name = 'dragPlane';
-  scene.add(dragPlane);
 
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(3.8, 3.95, 64),
@@ -128,7 +120,6 @@ export async function mountStage(canvas, options = {}) {
   }
   scene.add(grid);
 
-  // Drop marker under held item
   const dropMarker = new THREE.Mesh(
     new THREE.RingGeometry(0.28, 0.42, 40),
     new THREE.MeshBasicMaterial({
@@ -149,15 +140,14 @@ export async function mountStage(canvas, options = {}) {
   if (nameEl) nameEl.textContent = 'Loading models…';
   if (roleEl) roleEl.textContent = 'Fetching Bedrock geometry';
 
-  const manifestRes = await fetch(manifestUrl);
+  const manifestRes = await fetch(options.manifestUrl || 'assets/models/manifest.json');
   if (!manifestRes.ok) throw new Error(`Manifest ${manifestRes.status}`);
   const manifest = await manifestRes.json();
 
   /** @type {any[]} */
   const actors = [];
-  let slot = 0;
   const errors = [];
-
+  let slot = 0;
   for (const entry of manifest.models || []) {
     try {
       const actor = await createActor(entry, slot, (manifest.models || []).length);
@@ -166,13 +156,10 @@ export async function mountStage(canvas, options = {}) {
       slot += 1;
     } catch (err) {
       console.error('Failed to load model', entry.id, err);
-      errors.push(`${entry.id}: ${err && err.message ? err.message : err}`);
+      errors.push(`${entry.id}: ${err?.message || err}`);
     }
   }
-
-  if (!actors.length) {
-    throw new Error(`No models loaded. ${errors.join(' | ')}`);
-  }
+  if (!actors.length) throw new Error(`No models loaded. ${errors.join(' | ')}`);
 
   let focused = actors[0];
   /** @type {any|null} */
@@ -180,40 +167,45 @@ export async function mountStage(canvas, options = {}) {
   /** @type {any|null} */
   let hovered = null;
   let globalMode = 'walk';
-  /** Next plain left-click picks up (Grab button / trackpad fallback) */
-  let grabArmed = false;
+
+  // Pointer state machine
+  /** @type {'none'|'orbit'|'drag'} */
+  let dragMode = 'none';
+  let activePointerId = null;
+  let lastX = 0;
+  let lastY = 0;
+  const holdTarget = new THREE.Vector3();
+  const holdSmooth = new THREE.Vector3();
+  const raycaster = new THREE.Raycaster();
+  const pointerNdc = new THREE.Vector2();
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
   updateHud(focused);
   setHintDefault();
 
-  const grabBtn = document.getElementById('stage-grab-btn');
-  if (grabBtn) {
-    grabBtn.addEventListener('click', () => {
-      grabArmed = !grabArmed;
-      grabBtn.classList.toggle('is-active', grabArmed);
-      if (hintEl) {
-        hintEl.textContent = grabArmed
-          ? 'Grab armed — left-click a model to pick it up. Click Grab again to cancel.'
-          : 'Left-click focus · right-click pick up · drag orbit · scroll zoom.';
-      }
-    });
+  function setHintDefault() {
+    if (!hintEl) return;
+    hintEl.textContent =
+      'Click a model to pick up · drag to place · release to drop · drag empty space to look around.';
   }
 
-  const raycaster = new THREE.Raycaster();
-  const pointer = new THREE.Vector2();
-  const holdTarget = new THREE.Vector3();
-  const holdSmooth = new THREE.Vector3();
+  function updateHud(actor) {
+    if (!actor) return;
+    if (nameEl) nameEl.textContent = actor.name;
+    if (roleEl) {
+      roleEl.textContent = held === actor ? 'Holding — drag to move, release to drop' : actor.role;
+    }
+  }
 
-  function setPointerFromEvent(ev) {
+  function setPointerNdc(ev) {
     const rect = canvas.getBoundingClientRect();
-    pointer.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-    pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    pointerNdc.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNdc.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
   function hitActor(ev) {
-    setPointerFromEvent(ev);
-    raycaster.setFromCamera(pointer, camera);
-    // Prefer dedicated pick proxies (larger, reliable), then full mesh
+    setPointerNdc(ev);
+    raycaster.setFromCamera(pointerNdc, camera);
     const proxies = actors.map((a) => a.pickProxy).filter(Boolean);
     let hits = raycaster.intersectObjects(proxies, false);
     if (!hits.length) {
@@ -229,28 +221,12 @@ export async function mountStage(canvas, options = {}) {
     return actors.find((a) => a.id === obj.userData.actorId) || null;
   }
 
-  /** True right-click, or Mac ctrl/meta+click used as secondary click */
-  function isPickButton(ev) {
-    return (
-      ev.button === 2 ||
-      (ev.button === 0 && (ev.ctrlKey || ev.metaKey))
-    );
-  }
-
-
-  function groundPointFromEvent(ev, height = 0) {
-    setPointerFromEvent(ev);
-    raycaster.setFromCamera(pointer, camera);
-    // Ray vs horizontal plane at `height`
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -height);
+  function groundPoint(ev, height = 0) {
+    setPointerNdc(ev);
+    raycaster.setFromCamera(pointerNdc, camera);
+    groundPlane.constant = -height;
     const out = new THREE.Vector3();
-    if (!raycaster.ray.intersectPlane(plane, out)) {
-      // fallback: drag plane mesh
-      const hits = raycaster.intersectObject(dragPlane, false);
-      if (hits.length) out.copy(hits[0].point);
-      else return null;
-    }
-    // Clamp to arena
+    if (!raycaster.ray.intersectPlane(groundPlane, out)) return null;
     const r = Math.hypot(out.x, out.z);
     if (r > ARENA_RADIUS) {
       out.x = (out.x / r) * ARENA_RADIUS;
@@ -261,35 +237,34 @@ export async function mountStage(canvas, options = {}) {
   }
 
   function pickUp(actor, ev) {
-    if (held && held !== actor) dropHeld();
+    if (held && held !== actor) dropHeld(false);
     held = actor;
     actor.setHeld(true);
     focused = actor;
     updateHud(actor);
 
-    const pt = groundPointFromEvent(ev, HOLD_HEIGHT);
+    const pt = groundPoint(ev, HOLD_HEIGHT);
     if (pt) {
       holdTarget.copy(pt);
-      holdSmooth.copy(actor.wrapper.position);
-      holdSmooth.y = HOLD_HEIGHT;
+      holdSmooth.set(actor.wrapper.position.x, HOLD_HEIGHT, actor.wrapper.position.z);
     } else {
       holdTarget.set(actor.wrapper.position.x, HOLD_HEIGHT, actor.wrapper.position.z);
       holdSmooth.copy(holdTarget);
     }
+    // Snap up immediately so user sees grab
+    actor.wrapper.position.y = HOLD_HEIGHT;
 
     canvas.classList.add('is-holding');
     canvas.style.cursor = 'grabbing';
-    dropMarker.material.opacity = 0.55;
+    dropMarker.material.opacity = 0.6;
     if (hintEl) {
-      hintEl.textContent = `Holding ${actor.name} — move mouse to place · right-click to drop.`;
+      hintEl.textContent = `Holding ${actor.name} — drag to move · release to drop · Esc cancels.`;
     }
-    if (roleEl) roleEl.textContent = 'Picked up · right-click to drop';
   }
 
-  function dropHeld() {
+  function dropHeld(restoreMode = true) {
     if (!held) return;
     const actor = held;
-    // Snap to ground under current position
     const x = actor.wrapper.position.x;
     const z = actor.wrapper.position.z;
     const r = Math.hypot(x, z);
@@ -297,7 +272,7 @@ export async function mountStage(canvas, options = {}) {
     const nz = r > ARENA_RADIUS ? (z / r) * ARENA_RADIUS : z;
     actor.dropAt(nx, nz);
     actor.setHeld(false);
-    actor.setMode(globalMode);
+    if (restoreMode) actor.setMode(globalMode);
     held = null;
     canvas.classList.remove('is-holding');
     canvas.style.cursor = '';
@@ -306,103 +281,157 @@ export async function mountStage(canvas, options = {}) {
     updateHud(actor);
   }
 
-  function setHintDefault() {
-    if (!hintEl) return;
-    hintEl.textContent =
-      'Right-click (or Grab + left-click) to pick up · left-drag orbits · Esc drops.';
-  }
-
-  // Capture phase: run before OrbitControls so right-click never pans
-  function onPointerDownCapture(ev) {
-    if (!isPickButton(ev)) return;
-
+  // —— Pointer handlers (single system, no OrbitControls) ——
+  canvas.addEventListener('contextmenu', (ev) => {
     ev.preventDefault();
-    ev.stopPropagation();
-    if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+  });
 
+  canvas.addEventListener('pointerdown', (ev) => {
+    // Only primary/secondary mouse buttons
+    if (ev.button !== 0 && ev.button !== 2) return;
+    ev.preventDefault();
+
+    // If already holding and click elsewhere — drop then maybe grab new
     const actor = hitActor(ev);
 
     if (held) {
+      // Click while holding drops; if on another model, swap grab
       if (actor && actor !== held) {
-        dropHeld();
+        dropHeld(false);
         pickUp(actor, ev);
+        dragMode = 'drag';
       } else {
-        dropHeld();
+        dropHeld(true);
+        dragMode = 'none';
+      }
+      activePointerId = ev.pointerId;
+      lastX = ev.clientX;
+      lastY = ev.clientY;
+      try {
+        canvas.setPointerCapture(ev.pointerId);
+      } catch (_) {
+        /* ignore */
       }
       return;
     }
 
-    if (actor) pickUp(actor, ev);
-  }
-
-  canvas.addEventListener('contextmenu', (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-  });
-
-  canvas.addEventListener('pointerdown', onPointerDownCapture, true);
-
-  canvas.addEventListener('pointerdown', (ev) => {
-    // Plain left-click (ctrl/meta+click is pick on Mac via capture handler)
-    if (ev.button !== 0 || ev.ctrlKey || ev.metaKey) return;
-
-    // If already holding, left-click drops at cursor (easier than right-click)
-    if (held) {
-      dropHeld();
-      return;
-    }
-
-    const actor = hitActor(ev);
-    if (!actor) return;
-
-    // Grab mode: left-click picks up
-    if (grabArmed) {
-      grabArmed = false;
-      if (grabBtn) grabBtn.classList.remove('is-active');
+    if (actor) {
+      // Grab model (left OR right click)
       pickUp(actor, ev);
+      dragMode = 'drag';
+      activePointerId = ev.pointerId;
+      lastX = ev.clientX;
+      lastY = ev.clientY;
+      try {
+        canvas.setPointerCapture(ev.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+      // Also fire a brief action flash
       return;
     }
 
-    focused = actor;
-    actor.playAction();
-    updateHud(focused);
-    controls.target.lerp(
-      new THREE.Vector3(actor.wrapper.position.x, 1.2, actor.wrapper.position.z),
-      0.65
-    );
+    // Empty space + left button → orbit camera
+    if (ev.button === 0) {
+      dragMode = 'orbit';
+      activePointerId = ev.pointerId;
+      lastX = ev.clientX;
+      lastY = ev.clientY;
+      canvas.style.cursor = 'grabbing';
+      try {
+        canvas.setPointerCapture(ev.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+    }
   });
 
   canvas.addEventListener('pointermove', (ev) => {
-    if (!held) {
-      const actor = hitActor(ev);
-      if (hovered && hovered !== actor) hovered.setHovered(false);
-      if (actor && actor !== hovered) actor.setHovered(true);
-      hovered = actor;
-      canvas.style.cursor = actor ? 'grab' : '';
-    } else {
-      const pt = groundPointFromEvent(ev, HOLD_HEIGHT);
+    if (dragMode === 'none' || activePointerId !== ev.pointerId) {
+      // Hover only when idle
+      if (!held) {
+        const actor = hitActor(ev);
+        if (hovered && hovered !== actor) hovered.setHovered(false);
+        if (actor && actor !== hovered) actor.setHovered(true);
+        hovered = actor;
+        canvas.style.cursor = actor ? 'grab' : '';
+      }
+      return;
+    }
+
+    const dx = ev.clientX - lastX;
+    const dy = ev.clientY - lastY;
+    lastX = ev.clientX;
+    lastY = ev.clientY;
+
+    if (dragMode === 'orbit') {
+      orbit.theta -= dx * 0.0055;
+      orbit.phi -= dy * 0.0055;
+      orbit.phi = Math.max(orbit.minPhi, Math.min(orbit.maxPhi, orbit.phi));
+      applyOrbit();
+      return;
+    }
+
+    if (dragMode === 'drag' && held) {
+      const pt = groundPoint(ev, HOLD_HEIGHT);
       if (pt) holdTarget.copy(pt);
     }
   });
 
-  canvas.addEventListener('pointerleave', () => {
-    if (hovered) {
-      hovered.setHovered(false);
-      hovered = null;
+  function endPointer(ev) {
+    if (activePointerId !== null && ev.pointerId !== activePointerId) return;
+
+    if (dragMode === 'drag' && held) {
+      // Release drops
+      dropHeld(true);
     }
-    if (!held) canvas.style.cursor = '';
-  });
 
-  // Escape drops
+    if (dragMode === 'orbit') {
+      canvas.style.cursor = '';
+    }
+
+    dragMode = 'none';
+    activePointerId = null;
+    try {
+      canvas.releasePointerCapture(ev.pointerId);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+
+  canvas.addEventListener(
+    'wheel',
+    (ev) => {
+      ev.preventDefault();
+      const factor = Math.exp(ev.deltaY * 0.0012);
+      orbit.radius = Math.max(
+        orbit.minRadius,
+        Math.min(orbit.maxRadius, orbit.radius * factor)
+      );
+      applyOrbit();
+    },
+    { passive: false }
+  );
+
   window.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && held) dropHeld();
+    if (ev.key === 'Escape' && held) dropHeld(true);
   });
 
+  // Mode buttons
   document.querySelectorAll('[data-stage-mode]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const mode = btn.getAttribute('data-stage-mode');
-      globalMode = mode === 'walk' || mode === 'action' || mode === 'idle' ? mode : 'walk';
-      document.querySelectorAll('[data-stage-mode]').forEach((b) => b.classList.remove('is-active'));
+      // Ignore non walk/idle/action (e.g. grab btn handled separately if present)
+      if (mode !== 'walk' && mode !== 'idle' && mode !== 'action') return;
+      globalMode = mode;
+      document.querySelectorAll('[data-stage-mode]').forEach((b) => {
+        if (['walk', 'idle', 'action'].includes(b.getAttribute('data-stage-mode'))) {
+          b.classList.remove('is-active');
+        }
+      });
       btn.classList.add('is-active');
       for (const a of actors) {
         if (!a.isHeld()) a.setMode(globalMode);
@@ -411,10 +440,17 @@ export async function mountStage(canvas, options = {}) {
     });
   });
 
-  function updateHud(actor) {
-    if (!actor) return;
-    if (nameEl) nameEl.textContent = actor.name;
-    if (roleEl && !held) roleEl.textContent = actor.role;
+  // Optional Grab button — just focuses hint; click-to-grab is always on
+  const grabBtn = document.getElementById('stage-grab-btn');
+  if (grabBtn) {
+    grabBtn.addEventListener('click', () => {
+      if (hintEl) {
+        hintEl.textContent =
+          'Click any model to pick it up, then drag and release to place.';
+      }
+      grabBtn.classList.add('is-active');
+      setTimeout(() => grabBtn.classList.remove('is-active'), 1200);
+    });
   }
 
   function resize() {
@@ -427,7 +463,6 @@ export async function mountStage(canvas, options = {}) {
   }
   resize();
   window.addEventListener('resize', resize);
-
   renderer.render(scene, camera);
 
   const clock = new THREE.Clock();
@@ -439,16 +474,15 @@ export async function mountStage(canvas, options = {}) {
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
 
-    // Smooth-follow held model to cursor target
     if (held) {
-      holdSmooth.lerp(holdTarget, 1 - Math.exp(-12 * dt));
+      holdSmooth.lerp(holdTarget, 1 - Math.exp(-14 * dt));
       held.wrapper.position.x = holdSmooth.x;
       held.wrapper.position.z = holdSmooth.z;
-      held.wrapper.position.y = holdSmooth.y + Math.sin(t * 3.2) * 0.04;
-      held.wrapper.rotation.y += dt * 0.35;
+      held.wrapper.position.y = holdSmooth.y + Math.sin(t * 3.5) * 0.035;
+      held.wrapper.rotation.y += dt * 0.4;
       dropMarker.position.x = holdSmooth.x;
       dropMarker.position.z = holdSmooth.z;
-      dropMarker.material.opacity = 0.4 + Math.sin(t * 5) * 0.12;
+      dropMarker.material.opacity = 0.45 + Math.sin(t * 5) * 0.12;
       dropMarker.scale.setScalar(1 + Math.sin(t * 5) * 0.06);
     }
 
@@ -456,7 +490,6 @@ export async function mountStage(canvas, options = {}) {
     cyan.position.x = Math.sin(t * 0.4) * 3.2;
     amber.position.z = Math.cos(t * 0.35) * 2.5;
     ring.rotation.z = t * 0.08;
-    controls.update();
     renderer.render(scene, camera);
   }
   frame();
@@ -464,7 +497,6 @@ export async function mountStage(canvas, options = {}) {
   return {
     dispose() {
       running = false;
-      controls.dispose();
       renderer.dispose();
       window.removeEventListener('resize', resize);
     },
@@ -493,9 +525,9 @@ async function createActor(entry, index, total) {
   wrapper.add(pivot);
   wrapper.userData.actorId = entry.id;
 
-  // Large invisible pick volume so right-click is easy to hit
+  // Big invisible pick sphere
   const pickProxy = new THREE.Mesh(
-    new THREE.SphereGeometry(entry.kind === 'weapon' ? 0.9 : 1.15, 16, 12),
+    new THREE.SphereGeometry(entry.kind === 'weapon' ? 1.0 : 1.25, 16, 12),
     new THREE.MeshBasicMaterial({
       visible: false,
       transparent: true,
@@ -503,7 +535,7 @@ async function createActor(entry, index, total) {
       depthWrite: false,
     })
   );
-  pickProxy.position.y = entry.kind === 'weapon' ? 1.1 : 0.95;
+  pickProxy.position.y = entry.kind === 'weapon' ? 1.15 : 1.0;
   pickProxy.userData.actorId = entry.id;
   pickProxy.name = 'pickProxy';
   wrapper.add(pickProxy);
@@ -526,7 +558,6 @@ async function createActor(entry, index, total) {
   glow.position.y = 0.025;
   wrapper.add(glow);
 
-  // Soft selection halo (hover / held)
   const halo = new THREE.Mesh(
     new THREE.RingGeometry(0.48, 0.58, 40),
     new THREE.MeshBasicMaterial({
@@ -564,7 +595,6 @@ async function createActor(entry, index, total) {
   let phase = Math.random() * Math.PI * 2;
   let held = false;
   let hovered = false;
-  let baseScale = 1;
 
   const bones = model.bones;
 
@@ -580,7 +610,6 @@ async function createActor(entry, index, total) {
     const swing = Math.sin(t * 6 + phase) * amount;
     const swing2 = Math.sin(t * 6 + phase + Math.PI) * amount;
     const bob = Math.abs(Math.sin(t * 6 + phase)) * 0.06 * amount;
-
     const legL = bones.leg_l;
     const legR = bones.leg_r;
     const armL = bones.arm_l;
@@ -589,7 +618,6 @@ async function createActor(entry, index, total) {
     const head = bones.head;
     const tail = bones.tail;
     const jaw = bones.jaw;
-
     if (legL) legL.rotation.x = swing * 0.55;
     if (legR) legR.rotation.x = swing2 * 0.55;
     if (armL) armL.rotation.x = swing2 * 0.4;
@@ -617,12 +645,9 @@ async function createActor(entry, index, total) {
   }
 
   function applyCarriedPose(t) {
-    // Slight tucked / float idle while held
     applyProceduralIdle(t);
-    const legs = [bones.leg_l, bones.leg_r];
-    for (const leg of legs) {
-      if (leg) leg.rotation.x = -0.25;
-    }
+    if (bones.leg_l) bones.leg_l.rotation.x = -0.25;
+    if (bones.leg_r) bones.leg_r.rotation.x = -0.25;
     if (bones.arm_l) bones.arm_l.rotation.x = 0.2;
     if (bones.arm_r) bones.arm_r.rotation.x = 0.2;
   }
@@ -639,25 +664,20 @@ async function createActor(entry, index, total) {
     setHeld(v) {
       held = !!v;
       hovered = false;
-      baseScale = held ? 1.12 : 1;
-      wrapper.scale.setScalar(baseScale);
+      wrapper.scale.setScalar(held ? 1.14 : 1);
       glow.material.opacity = held ? 0.9 : 0;
-      halo.material.opacity = held ? 0.65 : 0;
-      if (held) {
-        // freeze roam
-        mode = 'idle';
-      }
+      halo.material.opacity = held ? 0.7 : 0;
+      if (held) mode = 'idle';
     },
     setHovered(v) {
       if (held) return;
       hovered = !!v;
       halo.material.opacity = hovered ? 0.45 : 0;
-      wrapper.scale.setScalar(hovered ? 1.04 : 1);
+      wrapper.scale.setScalar(hovered ? 1.05 : 1);
     },
     dropAt(x, z) {
       wrapper.position.set(x, 0, z);
       wrapper.scale.setScalar(1);
-      baseScale = 1;
       pivot.position.y = 0;
     },
     setMode(m) {
@@ -681,19 +701,16 @@ async function createActor(entry, index, total) {
         pivot.position.y = Math.sin(t * 3 + phase) * 0.05;
         glow.material.opacity = 0.55 + Math.sin(t * 5) * 0.15;
         halo.material.opacity = 0.5 + Math.sin(t * 5) * 0.12;
-        // weapon spin handled externally via wrapper rotation
-        if (entry.kind === 'weapon') {
-          pivot.rotation.z = Math.sin(t * 1.5) * 0.1;
-        }
+        if (entry.kind === 'weapon') pivot.rotation.z = Math.sin(t * 1.5) * 0.1;
         return;
       }
 
-      // ease scale back
-      const targetScale = hovered ? 1.04 : 1;
+      const targetScale = hovered ? 1.05 : 1;
       const cur = wrapper.scale.x;
       if (Math.abs(cur - targetScale) > 0.001) {
-        const s = THREE.MathUtils.lerp(cur, targetScale, 1 - Math.exp(-10 * dt));
-        wrapper.scale.setScalar(s);
+        wrapper.scale.setScalar(
+          THREE.MathUtils.lerp(cur, targetScale, 1 - Math.exp(-10 * dt))
+        );
       }
 
       let active = mode;
@@ -708,7 +725,6 @@ async function createActor(entry, index, total) {
         sampleBedrockAnimation(actionDef, bones, Math.max(0, 1.2 - (actionUntil - now)));
       }
 
-      // Keep grounded when not held
       wrapper.position.y = THREE.MathUtils.lerp(wrapper.position.y, 0, 1 - Math.exp(-10 * dt));
       pivot.position.y = 0;
 
@@ -717,7 +733,10 @@ async function createActor(entry, index, total) {
         pivot.rotation.y += dt * 0.55;
         pivot.rotation.z = Math.sin(t * 1.2 + phase) * 0.08;
         applyProceduralIdle(t);
-        glow.material.opacity = Math.max(glow.material.opacity * 0.94, hovered ? 0.35 : 0.18);
+        glow.material.opacity = Math.max(
+          glow.material.opacity * 0.94,
+          hovered ? 0.35 : 0.18
+        );
         return;
       }
 
@@ -733,7 +752,6 @@ async function createActor(entry, index, total) {
         const vz = Math.cos(heading) * speed * dt;
         wrapper.position.x += vx;
         wrapper.position.z += vz;
-
         const r = Math.hypot(wrapper.position.x, wrapper.position.z);
         if (r > ARENA_RADIUS) {
           heading =
@@ -741,9 +759,11 @@ async function createActor(entry, index, total) {
             (Math.random() - 0.5) * 0.5;
           wrapper.position.multiplyScalar((ARENA_RADIUS - 0.1) / r);
         }
-
-        const face = Math.atan2(vx, vz);
-        wrapper.rotation.y = THREE.MathUtils.lerp(wrapper.rotation.y, face, 0.12);
+        wrapper.rotation.y = THREE.MathUtils.lerp(
+          wrapper.rotation.y,
+          Math.atan2(vx, vz),
+          0.12
+        );
       } else if (active === 'idle') {
         applyProceduralIdle(t);
       } else if (active === 'action') {
@@ -757,7 +777,6 @@ async function createActor(entry, index, total) {
         glow.material.opacity = 0.35 + Math.sin(t * 4) * 0.15;
         glow.scale.setScalar(1 + Math.sin(t * 4) * 0.05);
       }
-
       if (hovered && !held) {
         halo.material.opacity = 0.35 + Math.sin(t * 4) * 0.08;
       }
