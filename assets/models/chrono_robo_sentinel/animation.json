@@ -1,0 +1,59 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.ccr_epic.chrono_robo_sentinel.idle": {
+      "loop": true,
+      "animation_length": 2.8,
+      "bones": {
+        "body": {
+          "rotation": {
+            "0.0": [
+              0,
+              -2,
+              0
+            ],
+            "1.4": [
+              0,
+              2,
+              0
+            ],
+            "2.8": [
+              0,
+              -2,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "animation.ccr_epic.chrono_robo_sentinel.action": {
+      "animation_length": 0.8,
+      "bones": {
+        "body": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.15": [
+              -20,
+              8,
+              -6
+            ],
+            "0.35": [
+              35,
+              -10,
+              12
+            ],
+            "0.8": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  }
+}

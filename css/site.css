@@ -901,6 +901,162 @@ a:hover {
   margin: 0;
 }
 
+/* Interactive 3D stage */
+
+.stage-section {
+  padding: 0 0 3.2rem;
+}
+
+.stage-shell {
+  position: relative;
+  border-radius: calc(var(--radius) + 6px);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgba(62, 200, 255, 0.12), transparent 55%),
+    radial-gradient(ellipse 50% 50% at 80% 70%, rgba(240, 160, 48, 0.1), transparent 50%),
+    linear-gradient(180deg, #0d121c 0%, #0b0e14 100%);
+  border: 1px solid rgba(62, 200, 255, 0.16);
+  box-shadow: var(--shadow);
+  min-height: clamp(360px, 56vw, 560px);
+}
+
+.stage-canvas {
+  display: block;
+  width: 100%;
+  height: clamp(360px, 56vw, 560px);
+  touch-action: none;
+  cursor: grab;
+}
+
+.stage-canvas:active {
+  cursor: grabbing;
+}
+
+.stage-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem 1.15rem 1.1rem;
+}
+
+.stage-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.stage-label {
+  pointer-events: none;
+}
+
+.stage-label .eyebrow {
+  margin-bottom: 0.35rem;
+  background: rgba(62, 200, 255, 0.12);
+  color: var(--cyan);
+}
+
+.stage-label h2 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--display);
+  font-size: clamp(1.25rem, 2.5vw, 1.7rem);
+  letter-spacing: -0.02em;
+}
+
+.stage-label p {
+  margin: 0.25rem 0 0;
+  color: rgba(244, 241, 234, 0.72);
+  font-size: 0.95rem;
+}
+
+.stage-controls {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+
+.stage-controls button {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(12, 16, 24, 0.72);
+  color: rgba(244, 241, 234, 0.88);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.stage-controls button:hover {
+  border-color: rgba(62, 200, 255, 0.45);
+  color: #fff;
+}
+
+.stage-controls button.is-active {
+  background: rgba(62, 200, 255, 0.18);
+  border-color: rgba(62, 200, 255, 0.55);
+  color: var(--cyan);
+}
+
+.stage-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stage-focus {
+  background: rgba(12, 16, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 0.7rem 0.95rem;
+  min-width: 12rem;
+}
+
+.stage-focus strong {
+  display: block;
+  color: #fff;
+  font-family: var(--display);
+  font-size: 1.05rem;
+}
+
+.stage-focus span {
+  color: rgba(244, 241, 234, 0.7);
+  font-size: 0.88rem;
+}
+
+.stage-hint {
+  color: rgba(244, 241, 234, 0.55);
+  font-size: 0.82rem;
+  max-width: 22rem;
+  text-align: right;
+}
+
+.stage-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(244, 241, 234, 0.7);
+  padding: 2rem;
+  text-align: center;
+}
+
+.stage-shell.is-ready .stage-fallback {
+  display: none;
+}
+
 /* Responsive */
 
 @media (max-width: 900px) {

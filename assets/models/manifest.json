@@ -1,0 +1,37 @@
+{
+  "models": [
+    {
+      "id": "sentinel",
+      "name": "Chrono Robo Sentinel",
+      "role": "Boss \u00b7 Mech",
+      "path": "assets/models/chrono_robo_sentinel",
+      "scale": 0.09,
+      "yOffset": 0,
+      "kind": "biped",
+      "canWalk": true,
+      "color": "#3ec8ff"
+    },
+    {
+      "id": "rex",
+      "name": "Triassic Relic Rex",
+      "role": "Apex \u00b7 Creature",
+      "path": "assets/models/triassic_relic_rex",
+      "scale": 0.075,
+      "yOffset": 0,
+      "kind": "quad",
+      "canWalk": true,
+      "color": "#f0a030"
+    },
+    {
+      "id": "trophy_edge",
+      "name": "Trophy Edge",
+      "role": "Legendary \u00b7 Weapon",
+      "path": "assets/models/trophy_edge_assembled",
+      "scale": 0.1,
+      "yOffset": 0.35,
+      "kind": "weapon",
+      "canWalk": false,
+      "color": "#d8bb76"
+    }
+  ]
+}

@@ -56,12 +56,49 @@
       </div>
     </section>
 
+    <section class="stage-section">
+      <div class="container">
+        <div class="section-head" style="margin-bottom: 1rem;">
+          <span class="section-kicker">Live workbench</span>
+          <h2>Interactive 3D models</h2>
+          <p>Real Bedrock geometry from the studio epic line — orbit the stage, click a model, or watch them walk.</p>
+        </div>
+        <div class="stage-shell" id="stage-shell">
+          <canvas class="stage-canvas" id="forge-stage" aria-label="Interactive AionForge 3D model stage"></canvas>
+          <div class="stage-overlay">
+            <div class="stage-top">
+              <div class="stage-label">
+                <p class="eyebrow">Epic wave · live geo</p>
+                <h2>Forge Stage</h2>
+                <p>Trophy Edge · Chrono Robo Sentinel · Triassic Relic Rex</p>
+              </div>
+              <div class="stage-controls" role="group" aria-label="Animation mode">
+                <button type="button" data-stage-mode="walk" class="is-active">Walk</button>
+                <button type="button" data-stage-mode="idle">Idle</button>
+                <button type="button" data-stage-mode="action">Action</button>
+              </div>
+            </div>
+            <div class="stage-bottom">
+              <div class="stage-focus">
+                <strong id="stage-name">Loading…</strong>
+                <span id="stage-role">Preparing models</span>
+              </div>
+              <p class="stage-hint" id="stage-hint">Drag to orbit · scroll to zoom · click a model to focus and play action.</p>
+            </div>
+          </div>
+          <div class="stage-fallback" id="stage-fallback">
+            <p>Loading interactive models…<br><small>Requires WebGL. Static stills remain below if 3D cannot start.</small></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section">
       <div class="container">
         <div class="section-head">
-          <span class="section-kicker">Hero roster</span>
+          <span class="section-kicker">Hero roster · stills</span>
           <h2>Swords, sentinels, and rex</h2>
-          <p>Flagship wave models from the studio epic line — the pieces that set the bar for silhouette, materials, and energy glow.</p>
+          <p>Same flagship models as the live stage above — marketing stills for press and sharing.</p>
         </div>
         <div class="product-grid">
           <article class="product-card">
@@ -263,5 +300,25 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
+
+  <script type="module">
+    import { mountStage } from './js/stage.js';
+    const canvas = document.getElementById('forge-stage');
+    const shell = document.getElementById('stage-shell');
+    const fallback = document.getElementById('stage-fallback');
+    if (canvas) {
+      mountStage(canvas)
+        .then(() => {
+          shell?.classList.add('is-ready');
+        })
+        .catch((err) => {
+          console.error(err);
+          if (fallback) {
+            fallback.innerHTML = '<p>3D stage could not start on this device.<br><small>Scroll down for stills of the same models.</small></p>';
+          }
+        });
+    }
+  </script>
+
 </body>
 </html>
