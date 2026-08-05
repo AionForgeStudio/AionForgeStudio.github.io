@@ -308,13 +308,18 @@
     const fallback = document.getElementById('stage-fallback');
     if (canvas) {
       mountStage(canvas)
-        .then(() => {
+        .then((api) => {
           shell?.classList.add('is-ready');
+          if (api?.errors?.length) console.warn('Partial model load errors', api.errors);
         })
         .catch((err) => {
-          console.error(err);
+          console.error('Forge stage failed', err);
           if (fallback) {
-            fallback.innerHTML = '<p>3D stage could not start on this device.<br><small>Scroll down for stills of the same models.</small></p>';
+            const msg = (err && err.message) ? err.message : String(err);
+            fallback.innerHTML =
+              '<p><strong>3D stage failed to start.</strong><br>' +
+              '<small>' + msg.replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s])) +
+              '</small><br><small>Static stills are still available below.</small></p>';
           }
         });
     }
