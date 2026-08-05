@@ -61,35 +61,28 @@
         <div class="section-head reveal">
           <span class="section-kicker">Live workbench</span>
           <h2>Play with the models</h2>
-          <p>Click any model to pick it up, drag to place, release to drop. Drag empty space to look around.</p>
+          <p class="stage-help desktop-only">Click a model to pick it up, drag to place, release to drop. Drag empty space to look around. Scroll to zoom.</p>
+          <p class="stage-help mobile-only">Tap a model to grab it, drag to move, release to drop. One finger orbits · pinch to zoom.</p>
         </div>
-        <div class="stage-shell reveal" id="stage-shell">
-          <canvas class="stage-canvas" id="forge-stage" aria-label="Interactive AionForge 3D model stage"></canvas>
-          <div class="stage-overlay">
-            <div class="stage-top">
-              <div class="stage-label">
-                <p class="eyebrow">Epic wave · live geo</p>
-                <h2>Forge Stage</h2>
-                <p>Trophy Edge · Chrono Robo Sentinel · Triassic Relic Rex</p>
-              </div>
-              <div class="stage-controls" role="group" aria-label="Animation mode">
-                <button type="button" data-stage-mode="walk" class="is-active">Walk</button>
-                <button type="button" data-stage-mode="idle">Idle</button>
-                <button type="button" data-stage-mode="action">Action</button>
-                <button type="button" id="stage-grab-btn" title="Click any model to pick it up">Pick tip</button>
-              </div>
-            </div>
-            <div class="stage-bottom">
+        <div class="stage-frame reveal">
+          <div class="stage-shell" id="stage-shell">
+            <canvas class="stage-canvas" id="forge-stage" aria-label="Interactive AionForge 3D model stage"></canvas>
+            <div class="stage-overlay">
               <div class="stage-focus">
                 <strong id="stage-name">Loading…</strong>
                 <span id="stage-role">Preparing models</span>
               </div>
-              <p class="stage-hint" id="stage-hint">Click model to grab · drag & release to place · drag empty space to orbit.</p>
+            </div>
+            <div class="stage-fallback" id="stage-fallback">
+              <p>Loading interactive models…<br><small>Requires WebGL.</small></p>
             </div>
           </div>
-          <div class="stage-fallback" id="stage-fallback">
-            <p>Loading interactive models…<br><small>Requires WebGL.</small></p>
+          <div class="stage-toolbar" role="group" aria-label="Animation mode">
+            <button type="button" data-stage-mode="walk" class="is-active">Walk</button>
+            <button type="button" data-stage-mode="idle">Idle</button>
+            <button type="button" data-stage-mode="action">Action</button>
           </div>
+          <p class="stage-hint desktop-only" id="stage-hint">Click model to grab · drag &amp; release to place · drag empty space to orbit · pinch/scroll zoom.</p>
         </div>
       </div>
     </section>
@@ -331,7 +324,7 @@
   </script>
 
   <script type="module">
-    import { mountStage } from './js/stage.js?v=grab3';
+    import { mountStage } from './js/stage.js?v=mobile1';
     const canvas = document.getElementById('forge-stage');
     const shell = document.getElementById('stage-shell');
     const fallback = document.getElementById('stage-fallback');

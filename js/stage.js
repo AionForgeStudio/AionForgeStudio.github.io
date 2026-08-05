@@ -1,12 +1,13 @@
 /**
  * Interactive AionForge model stage.
  *
- * Pointer model (simple, no physics, no OrbitControls fight):
- * - Press on a model (left OR right) → pick it up
- * - Drag while held → move it on the ground plane
- * - Release → drop
- * - Drag empty space (left) → orbit camera
- * - Scroll → zoom
+ * Desktop:
+ * - Click model → pick up; drag → move; release → drop
+ * - Drag empty space → orbit; scroll → zoom
+ * Mobile:
+ * - One finger on model → grab & drag; release → drop
+ * - One finger empty → orbit
+ * - Pinch → zoom
  * - Esc → drop if held
  */
 import * as THREE from './vendor/three.module.js';
@@ -168,39 +169,49 @@ export async function mountStage(canvas, options = {}) {
   let hovered = null;
   let globalMode = 'walk';
 
-  // Pointer state machine
-  /** @type {'none'|'orbit'|'drag'} */
+  // Pointer / multi-touch state
+  /** @type {'none'|'orbit'|'drag'|'pinch'} */
   let dragMode = 'none';
   let activePointerId = null;
   let lastX = 0;
   let lastY = 0;
+  /** @type {Map<number, {x:number,y:number}>} */
+  const pointers = new Map();
+  let pinchStartDist = 0;
+  let pinchStartRadius = orbit.radius;
+  const MOVE_THRESH = 8;
+  let pending = null; // { mode, startX, startY, actor?, pointerId }
   const holdTarget = new THREE.Vector3();
   const holdSmooth = new THREE.Vector3();
   const raycaster = new THREE.Raycaster();
   const pointerNdc = new THREE.Vector2();
   const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
-  updateHud(focused);
-  setHintDefault();
-
   function setHintDefault() {
     if (!hintEl) return;
-    hintEl.textContent =
-      'Click a model to pick up · drag to place · release to drop · drag empty space to look around.';
+    const mobile = window.matchMedia('(max-width: 720px)').matches;
+    hintEl.textContent = mobile
+      ? 'Tap model to grab · pinch to zoom · one finger orbits empty space.'
+      : 'Click model to grab · drag & release to place · drag empty space to orbit · scroll zoom.';
   }
 
   function updateHud(actor) {
     if (!actor) return;
     if (nameEl) nameEl.textContent = actor.name;
     if (roleEl) {
-      roleEl.textContent = held === actor ? 'Holding — drag to move, release to drop' : actor.role;
+      roleEl.textContent =
+        held === actor ? 'Holding · drag to move · release to drop' : actor.role;
     }
   }
 
-  function setPointerNdc(ev) {
+  function setPointerNdcFromXY(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    pointerNdc.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-    pointerNdc.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  function setPointerNdc(ev) {
+    setPointerNdcFromXY(ev.clientX, ev.clientY);
   }
 
   function hitActor(ev) {
@@ -236,6 +247,21 @@ export async function mountStage(canvas, options = {}) {
     return out;
   }
 
+  function pinchDistance() {
+    if (pointers.size < 2) return 0;
+    const pts = [...pointers.values()];
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
+  function beginPinch() {
+    dragMode = 'pinch';
+    pending = null;
+    activePointerId = null;
+    pinchStartDist = pinchDistance() || 1;
+    pinchStartRadius = orbit.radius;
+    canvas.style.cursor = 'grabbing';
+  }
+
   function pickUp(actor, ev) {
     if (held && held !== actor) dropHeld(false);
     held = actor;
@@ -251,14 +277,13 @@ export async function mountStage(canvas, options = {}) {
       holdTarget.set(actor.wrapper.position.x, HOLD_HEIGHT, actor.wrapper.position.z);
       holdSmooth.copy(holdTarget);
     }
-    // Snap up immediately so user sees grab
     actor.wrapper.position.y = HOLD_HEIGHT;
 
     canvas.classList.add('is-holding');
     canvas.style.cursor = 'grabbing';
     dropMarker.material.opacity = 0.6;
     if (hintEl) {
-      hintEl.textContent = `Holding ${actor.name} — drag to move · release to drop · Esc cancels.`;
+      hintEl.textContent = `Holding ${actor.name} — drag to move · release to drop.`;
     }
   }
 
@@ -281,32 +306,19 @@ export async function mountStage(canvas, options = {}) {
     updateHud(actor);
   }
 
-  // —— Pointer handlers (single system, no OrbitControls) ——
   canvas.addEventListener('contextmenu', (ev) => {
     ev.preventDefault();
   });
 
   canvas.addEventListener('pointerdown', (ev) => {
-    // Only primary/secondary mouse buttons
     if (ev.button !== 0 && ev.button !== 2) return;
     ev.preventDefault();
 
-    // If already holding and click elsewhere — drop then maybe grab new
-    const actor = hitActor(ev);
+    pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
 
-    if (held) {
-      // Click while holding drops; if on another model, swap grab
-      if (actor && actor !== held) {
-        dropHeld(false);
-        pickUp(actor, ev);
-        dragMode = 'drag';
-      } else {
-        dropHeld(true);
-        dragMode = 'none';
-      }
-      activePointerId = ev.pointerId;
-      lastX = ev.clientX;
-      lastY = ev.clientY;
+    // Second finger → pinch zoom (camera only)
+    if (pointers.size >= 2) {
+      beginPinch();
       try {
         canvas.setPointerCapture(ev.pointerId);
       } catch (_) {
@@ -315,29 +327,57 @@ export async function mountStage(canvas, options = {}) {
       return;
     }
 
-    if (actor) {
-      // Grab model (left OR right click)
-      pickUp(actor, ev);
+    const actor = hitActor(ev);
+
+    if (held) {
+      if (actor && actor !== held) {
+        dropHeld(false);
+        pickUp(actor, ev);
+      }
       dragMode = 'drag';
       activePointerId = ev.pointerId;
       lastX = ev.clientX;
       lastY = ev.clientY;
+      pending = null;
       try {
         canvas.setPointerCapture(ev.pointerId);
       } catch (_) {
         /* ignore */
       }
-      // Also fire a brief action flash
       return;
     }
 
-    // Empty space + left button → orbit camera
-    if (ev.button === 0) {
-      dragMode = 'orbit';
+    // Defer commit until move threshold
+    if (actor) {
+      pending = {
+        mode: 'drag',
+        startX: ev.clientX,
+        startY: ev.clientY,
+        actor,
+        pointerId: ev.pointerId,
+      };
       activePointerId = ev.pointerId;
       lastX = ev.clientX;
       lastY = ev.clientY;
-      canvas.style.cursor = 'grabbing';
+      try {
+        canvas.setPointerCapture(ev.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+      return;
+    }
+
+    if (ev.button === 0 || ev.pointerType === 'touch') {
+      pending = {
+        mode: 'orbit',
+        startX: ev.clientX,
+        startY: ev.clientY,
+        pointerId: ev.pointerId,
+      };
+      dragMode = 'none';
+      activePointerId = ev.pointerId;
+      lastX = ev.clientX;
+      lastY = ev.clientY;
       try {
         canvas.setPointerCapture(ev.pointerId);
       } catch (_) {
@@ -347,20 +387,55 @@ export async function mountStage(canvas, options = {}) {
   });
 
   canvas.addEventListener('pointermove', (ev) => {
-    if (dragMode === 'none' || activePointerId !== ev.pointerId) {
-      // Hover only when idle
-      if (!held) {
-        const actor = hitActor(ev);
-        if (hovered && hovered !== actor) hovered.setHovered(false);
-        if (actor && actor !== hovered) actor.setHovered(true);
-        hovered = actor;
-        canvas.style.cursor = actor ? 'grab' : '';
+    if (pointers.has(ev.pointerId)) {
+      pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    }
+
+    if (pointers.size >= 2) {
+      if (dragMode !== 'pinch') beginPinch();
+      const d = pinchDistance();
+      if (d > 0 && pinchStartDist > 0) {
+        const scale = pinchStartDist / d;
+        orbit.radius = Math.max(
+          orbit.minRadius,
+          Math.min(orbit.maxRadius, pinchStartRadius * scale)
+        );
+        applyOrbit();
       }
       return;
     }
 
+    if (dragMode === 'none' && !pending && !held) {
+      const actor = hitActor(ev);
+      if (hovered && hovered !== actor) hovered.setHovered(false);
+      if (actor && actor !== hovered) actor.setHovered(true);
+      hovered = actor;
+      canvas.style.cursor = actor ? 'grab' : '';
+      return;
+    }
+
+    if (activePointerId !== null && ev.pointerId !== activePointerId) return;
+
     const dx = ev.clientX - lastX;
     const dy = ev.clientY - lastY;
+
+    if (pending && pending.pointerId === ev.pointerId) {
+      const dist = Math.hypot(ev.clientX - pending.startX, ev.clientY - pending.startY);
+      if (dist >= MOVE_THRESH) {
+        if (pending.mode === 'drag' && pending.actor) {
+          pickUp(pending.actor, ev);
+          dragMode = 'drag';
+        } else if (pending.mode === 'orbit') {
+          dragMode = 'orbit';
+          canvas.style.cursor = 'grabbing';
+        }
+        pending = null;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+      }
+      return;
+    }
+
     lastX = ev.clientX;
     lastY = ev.clientY;
 
@@ -379,10 +454,42 @@ export async function mountStage(canvas, options = {}) {
   });
 
   function endPointer(ev) {
+    pointers.delete(ev.pointerId);
+
+    if (dragMode === 'pinch') {
+      if (pointers.size >= 2) return;
+      dragMode = 'none';
+      activePointerId = null;
+      pinchStartDist = 0;
+      canvas.style.cursor = '';
+      try {
+        canvas.releasePointerCapture(ev.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+      return;
+    }
+
     if (activePointerId !== null && ev.pointerId !== activePointerId) return;
 
+    // Tap without much move: pick up model and keep held for next drag
+    if (pending && pending.pointerId === ev.pointerId) {
+      if (pending.mode === 'drag' && pending.actor) {
+        pickUp(pending.actor, ev);
+        dragMode = 'none';
+        pending = null;
+        activePointerId = null;
+        try {
+          canvas.releasePointerCapture(ev.pointerId);
+        } catch (_) {
+          /* ignore */
+        }
+        return;
+      }
+      pending = null;
+    }
+
     if (dragMode === 'drag' && held) {
-      // Release drops
       dropHeld(true);
     }
 
@@ -420,11 +527,9 @@ export async function mountStage(canvas, options = {}) {
     if (ev.key === 'Escape' && held) dropHeld(true);
   });
 
-  // Mode buttons
   document.querySelectorAll('[data-stage-mode]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const mode = btn.getAttribute('data-stage-mode');
-      // Ignore non walk/idle/action (e.g. grab btn handled separately if present)
       if (mode !== 'walk' && mode !== 'idle' && mode !== 'action') return;
       globalMode = mode;
       document.querySelectorAll('[data-stage-mode]').forEach((b) => {
@@ -440,18 +545,8 @@ export async function mountStage(canvas, options = {}) {
     });
   });
 
-  // Optional Grab button — just focuses hint; click-to-grab is always on
-  const grabBtn = document.getElementById('stage-grab-btn');
-  if (grabBtn) {
-    grabBtn.addEventListener('click', () => {
-      if (hintEl) {
-        hintEl.textContent =
-          'Click any model to pick it up, then drag and release to place.';
-      }
-      grabBtn.classList.add('is-active');
-      setTimeout(() => grabBtn.classList.remove('is-active'), 1200);
-    });
-  }
+  updateHud(focused);
+  setHintDefault();
 
   function resize() {
     const parent = canvas.parentElement || canvas;
