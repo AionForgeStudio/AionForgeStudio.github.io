@@ -177,8 +177,8 @@ a:hover {
   position: relative;
   overflow: hidden;
   border-radius: calc(var(--radius) + 6px);
-  min-height: clamp(320px, 48vw, 480px);
-  background: #ebe4d8 center / cover no-repeat;
+  min-height: clamp(340px, 50vw, 520px);
+  background: #0b0e14 center / cover no-repeat;
   box-shadow: var(--shadow);
   border: 1px solid rgba(123, 94, 167, 0.14);
 }
@@ -188,9 +188,15 @@ a:hover {
   position: absolute;
   inset: 0;
   background:
+    linear-gradient(100deg, rgba(11, 14, 20, 0.94) 0%, rgba(11, 14, 20, 0.78) 38%, rgba(11, 14, 20, 0.2) 68%, transparent 100%),
+    linear-gradient(0deg, rgba(11, 14, 20, 0.35), transparent 45%);
+  pointer-events: none;
+}
+
+.hero-banner.hero-light::after {
+  background:
     linear-gradient(100deg, rgba(250, 246, 239, 0.94) 0%, rgba(250, 246, 239, 0.78) 36%, rgba(250, 246, 239, 0.12) 68%, transparent 100%),
     linear-gradient(0deg, rgba(23, 23, 31, 0.08), transparent 40%);
-  pointer-events: none;
 }
 
 .hero-content {
@@ -198,6 +204,49 @@ a:hover {
   z-index: 1;
   max-width: 34rem;
   padding: clamp(1.6rem, 4vw, 3rem);
+  color: #f4f1ea;
+}
+
+.hero-banner.hero-light .hero-content {
+  color: var(--ink);
+}
+
+.hero-content h1 {
+  color: #fff;
+}
+
+.hero-banner.hero-light .hero-content h1 {
+  color: var(--ink);
+}
+
+.hero-content .lede {
+  color: rgba(244, 241, 234, 0.84);
+}
+
+.hero-banner.hero-light .hero-content .lede {
+  color: var(--ink-soft);
+}
+
+.hero-content .eyebrow {
+  background: rgba(62, 200, 255, 0.12);
+  color: var(--cyan);
+}
+
+.hero-banner.hero-light .hero-content .eyebrow {
+  background: rgba(123, 94, 167, 0.12);
+  color: var(--purple-deep);
+}
+
+.hero-content .btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.hero-banner.hero-light .hero-content .btn-ghost {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(78, 58, 114, 0.2);
+  color: var(--purple-deep);
 }
 
 .eyebrow {
@@ -873,6 +922,11 @@ a:hover {
   }
 
   .hero-banner::after {
+    background:
+      linear-gradient(180deg, rgba(11, 14, 20, 0.92) 0%, rgba(11, 14, 20, 0.78) 50%, rgba(11, 14, 20, 0.35) 100%);
+  }
+
+  .hero-banner.hero-light::after {
     background:
       linear-gradient(180deg, rgba(250, 246, 239, 0.9) 0%, rgba(250, 246, 239, 0.72) 48%, rgba(250, 246, 239, 0.25) 100%);
   }
