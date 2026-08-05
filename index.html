@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AionForge — Independent Game Studio</title>
   <meta name="description" content="AionForge builds Minecraft packs, epic creatures, legendary weapons, and creative tools — crafted cube by cube.">
-  <meta name="theme-color" content="#0b0e14">
+  <meta name="theme-color" content="#07080c">
   <meta property="og:title" content="AionForge — Independent Game Studio">
   <meta property="og:description" content="Epic creatures, legendary swords, and mech midbosses from an independent Minecraft studio.">
   <meta property="og:type" content="website">
@@ -14,16 +14,16 @@
   <link rel="icon" href="assets/brand/mascot-face.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="site-header">
+  <header class="site-header" id="site-header">
     <div class="container header-inner">
       <a class="brand" href="index.html" aria-label="AionForge home">
-        <img src="assets/brand/mascot-face.png" width="40" height="40" alt="" class="brand-mark">
+        <img src="assets/brand/mascot-face.png" width="32" height="32" alt="" class="brand-mark">
         <span class="brand-name">Aion<span>Forge</span></span>
       </a>
       <nav class="nav" aria-label="Primary">
@@ -31,39 +31,39 @@
         <a href="projects.html">Projects</a>
         <a href="about.html">About</a>
         <a href="press.html">Press</a>
-        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="nav-cta">Contact</a>
       </nav>
     </div>
   </header>
 
   <main id="main">
+    <!-- Full-bleed cinematic hero -->
     <section class="hero">
-      <div class="container">
-        <div class="hero-banner" style="background-image: url('assets/gallery/hero-lineup.jpg');">
-          <div class="hero-content">
-            <p class="eyebrow">Independent Minecraft studio</p>
-            <h1>Epic craft. Cube by cube.</h1>
-            <p class="lede">
-              Legendary swords, mech midbosses, and apex creatures — dense Blockbench models
-              built for Bedrock play with materials you can read at a glance.
-            </p>
-            <div class="hero-actions">
-              <a class="btn btn-primary" href="projects.html">Explore projects</a>
-              <a class="btn btn-ghost" href="contact.html">Talk to the studio</a>
-            </div>
+      <div class="hero-banner" style="background-image: url('assets/gallery/hero-lineup.jpg');">
+        <div class="hero-content reveal is-visible">
+          <p class="eyebrow">Independent Minecraft studio</p>
+          <h1>Epic craft.<br>Cube by cube.</h1>
+          <p class="lede">
+            Legendary swords, mech midbosses, and apex creatures —
+            dense Blockbench models built for Bedrock play.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#stage">Enter the stage</a>
+            <a class="btn btn-ghost" href="projects.html">View projects</a>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="stage-section">
+    <!-- Interactive 3D -->
+    <section class="stage-section" id="stage">
       <div class="container">
-        <div class="section-head" style="margin-bottom: 1rem;">
+        <div class="section-head reveal">
           <span class="section-kicker">Live workbench</span>
-          <h2>Interactive 3D models</h2>
-          <p>Real Bedrock geometry from the studio epic line — orbit the stage, click a model, or watch them walk.</p>
+          <h2>Play with the models</h2>
+          <p>Real Bedrock geometry from the epic line — orbit, click, and watch them walk.</p>
         </div>
-        <div class="stage-shell" id="stage-shell">
+        <div class="stage-shell reveal" id="stage-shell">
           <canvas class="stage-canvas" id="forge-stage" aria-label="Interactive AionForge 3D model stage"></canvas>
           <div class="stage-overlay">
             <div class="stage-top">
@@ -83,69 +83,71 @@
                 <strong id="stage-name">Loading…</strong>
                 <span id="stage-role">Preparing models</span>
               </div>
-              <p class="stage-hint" id="stage-hint">Drag to orbit · scroll to zoom · click a model to focus and play action.</p>
+              <p class="stage-hint" id="stage-hint">Drag to orbit · scroll to zoom · click a model to focus.</p>
             </div>
           </div>
           <div class="stage-fallback" id="stage-fallback">
-            <p>Loading interactive models…<br><small>Requires WebGL. Static stills remain below if 3D cannot start.</small></p>
+            <p>Loading interactive models…<br><small>Requires WebGL.</small></p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section">
+    <!-- Hero roster stills -->
+    <section class="section section-tight">
       <div class="container">
-        <div class="section-head">
-          <span class="section-kicker">Hero roster · stills</span>
-          <h2>Swords, sentinels, and rex</h2>
-          <p>Same flagship models as the live stage above — marketing stills for press and sharing.</p>
+        <div class="section-head reveal">
+          <span class="section-kicker">Hero roster</span>
+          <h2>Designed to be unforgettable</h2>
+          <p>Flagship silhouettes from the studio epic line — stills for press and sharing.</p>
         </div>
         <div class="product-grid">
-          <article class="product-card">
-            <div class="thumb" style="background:#141820;">
-              <img src="assets/gallery/product-trophy-edge.jpg" alt="Trophy Edge assembled legendary sword with gold energy glow" width="800" height="800" loading="lazy">
+          <article class="product-card reveal">
+            <div class="thumb">
+              <img src="assets/gallery/product-trophy-edge.jpg" alt="Trophy Edge legendary sword" width="800" height="800" loading="lazy">
             </div>
             <div class="body">
               <span class="meta">Legendary · Weapon</span>
               <h3>Trophy Edge</h3>
-              <p>Assembled pilgrimage god-sword — dark steel, gold fuller, winged guard, and trophy inlay.</p>
+              <p>Pilgrimage god-sword — dark steel, gold fuller, winged guard, trophy inlay.</p>
             </div>
           </article>
-          <article class="product-card">
-            <div class="thumb" style="background:#141820;">
-              <img src="assets/gallery/product-sentinel.jpg" alt="Chrono Robo Sentinel biped mech with cyan visor and ray arm" width="800" height="800" loading="lazy">
+          <article class="product-card reveal">
+            <div class="thumb">
+              <img src="assets/gallery/product-sentinel.jpg" alt="Chrono Robo Sentinel" width="800" height="800" loading="lazy">
             </div>
             <div class="body">
               <span class="meta">Boss · Mech</span>
               <h3>Chrono Robo Sentinel</h3>
-              <p>Charcoal armor, brass pauldrons, cyan core and visor — midboss with vector ray projector fantasy.</p>
+              <p>Charcoal armor, brass pauldrons, cyan core — midboss with ray projector fantasy.</p>
             </div>
           </article>
-          <article class="product-card">
-            <div class="thumb" style="background:#141820;">
-              <img src="assets/gallery/product-rex.jpg" alt="Triassic Relic Rex apex dinosaur with amber energy veins" width="800" height="800" loading="lazy">
+          <article class="product-card reveal">
+            <div class="thumb">
+              <img src="assets/gallery/product-rex.jpg" alt="Triassic Relic Rex" width="800" height="800" loading="lazy">
             </div>
             <div class="body">
               <span class="meta">Apex · Creature</span>
               <h3>Triassic Relic Rex</h3>
-              <p>Land apex theropod in bronze fossil plating — relic tooth, amber eyes, spine plates, and trophy source.</p>
+              <p>Land apex theropod in bronze fossil plating — amber eyes, spine plates, relic tooth.</p>
             </div>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" style="padding-top: 0;">
+    <!-- Arsenal -->
+    <section class="section section-tight">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="section-kicker">Arsenal</span>
-          <h2>More blades from the forge</h2>
-          <p>Additional legendary weapons with distinct material identities.</p>
+          <h2>More from the forge</h2>
+          <p>Distinct blades and boss language — each with its own material identity.</p>
         </div>
         <div class="product-grid">
-          <article class="product-card">
-            <div class="thumb" style="background:#141820;">
-              <img src="assets/gallery/product-ash-crownblade.jpg" alt="Ash Crownblade with ember edge and crown guard" width="800" height="800" loading="lazy">
+          <article class="product-card reveal">
+            <div class="thumb">
+              <img src="assets/gallery/product-ash-crownblade.jpg" alt="Ash Crownblade" width="800" height="800" loading="lazy">
             </div>
             <div class="body">
               <span class="meta">Legendary · Weapon</span>
@@ -153,9 +155,9 @@
               <p>Ash-steel blade with crown-winged guard and molten edge glow.</p>
             </div>
           </article>
-          <article class="product-card">
-            <div class="thumb" style="background:#141820;">
-              <img src="assets/gallery/product-ember-blade.jpg" alt="Ember Blade with orange-red energy edge" width="800" height="800" loading="lazy">
+          <article class="product-card reveal">
+            <div class="thumb">
+              <img src="assets/gallery/product-ember-blade.jpg" alt="Ember Blade" width="800" height="800" loading="lazy">
             </div>
             <div class="body">
               <span class="meta">Legendary · Weapon</span>
@@ -163,81 +165,82 @@
               <p>Hot-edge sword with brass guard accents and burning pommel core.</p>
             </div>
           </article>
-          <article class="product-card">
-            <div class="thumb" style="background:#141820;">
-              <img src="assets/gallery/feature-colossus.jpg" alt="Industrial cube colossus with cyan and amber lights" width="800" height="800" loading="lazy">
+          <article class="product-card reveal">
+            <div class="thumb">
+              <img src="assets/gallery/feature-colossus.jpg" alt="Signal Colossus" width="800" height="800" loading="lazy">
             </div>
             <div class="body">
               <span class="meta">Epic · Boss craft</span>
-              <h3>Signal Colossus language</h3>
-              <p>High-detail cube bosses with cyan and amber signal panels for apex encounters.</p>
+              <h3>Signal Colossus</h3>
+              <p>High-detail cube bosses with cyan and amber signal panels.</p>
             </div>
           </article>
         </div>
       </div>
     </section>
 
+    <!-- Craft story -->
     <section class="section section-dark">
       <div class="container feature-split">
-        <div class="feature-media">
-          <img src="assets/gallery/product-sentinel.jpg" alt="Chrono Robo Sentinel marketing still" width="900" height="900" loading="lazy">
+        <div class="feature-media reveal">
+          <img src="assets/gallery/product-sentinel.jpg" alt="Chrono Robo Sentinel detail" width="900" height="900" loading="lazy">
         </div>
-        <div class="feature-copy">
+        <div class="feature-copy reveal">
           <span class="section-kicker">How we build</span>
           <h2>Near-high-poly cube language</h2>
           <p class="lede-sm">
             Not stub models. Layered plates, trim, focal energy, and animation-ready bones —
-            the same discipline that shapes Trophy Edge, the Sentinel, and Relic Rex.
+            the discipline behind Trophy Edge, the Sentinel, and Relic Rex.
           </p>
           <div class="pill-row">
             <span class="pill">Blockbench native</span>
             <span class="pill">Bedrock ready</span>
             <span class="pill">31–35 cube heroes</span>
           </div>
-          <div>
-            <a class="btn btn-cyan" href="projects.html">See project slate</a>
-          </div>
+          <a class="btn btn-cyan" href="projects.html">See the full slate</a>
         </div>
       </div>
     </section>
 
+    <!-- Pillars -->
     <section class="section">
       <div class="container">
-        <div class="section-head">
-          <span class="section-kicker">Studio strengths</span>
+        <div class="section-head reveal">
+          <span class="section-kicker">Craft principles</span>
           <h2>What the roster proves</h2>
         </div>
         <div class="card-grid">
-          <article class="card">
+          <article class="card reveal">
             <div class="icon-blob" aria-hidden="true">⚔</div>
             <h3>Weapon identity</h3>
-            <p>Every blade gets a unique silhouette — winged guards, crown tips, ember edges — not palette swaps of one stick.</p>
+            <p>Every blade earns a unique silhouette — winged guards, crown tips, ember edges — not palette swaps.</p>
           </article>
-          <article class="card">
+          <article class="card reveal">
             <div class="icon-blob" aria-hidden="true">◎</div>
             <h3>Readable energy</h3>
             <p>Cyan cores, amber veins, gold fullers — focal glow that sells power without washing out the metal.</p>
           </article>
-          <article class="card">
+          <article class="card reveal">
             <div class="icon-blob" aria-hidden="true">⬡</div>
             <h3>Boss-ready structure</h3>
-            <p>Mechs and apex creatures rigged with real bone hierarchies for idle, action, and effect locators.</p>
+            <p>Mechs and apex creatures with real bone hierarchies for idle, action, and effect locators.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" style="padding-top: 0;">
+    <!-- Status -->
+    <section class="section section-tight">
       <div class="container portrait-band">
-        <div class="portrait-frame" style="background:#141820;">
+        <div class="portrait-frame reveal">
           <img src="assets/gallery/product-rex.jpg" alt="Triassic Relic Rex" width="1024" height="1024" loading="lazy">
         </div>
-        <div>
+        <div class="reveal">
           <span class="section-kicker">Studio status</span>
-          <h2>Public presence, private production</h2>
-          <p class="lede-sm" style="margin-bottom: 1.1rem;">
-            The site is live. Epic wave models, arsenal lines, and pack systems continue in production —
-            with public download pages opening as titles hit release candidates.
+          <h2>Public presence.<br>Private production.</h2>
+          <p class="lede-sm" style="margin-top: 1rem;">
+            The site is live. Epic wave models and arsenal lines continue in production —
+            public download pages open with each release candidate.
           </p>
           <div class="status-board" role="list">
             <div class="status-item" role="listitem">
@@ -266,13 +269,16 @@
       </div>
     </section>
 
-    <section class="section" style="padding-top: 0;">
-      <div class="container cta-band">
-        <div>
-          <h2>Build with AionForge</h2>
-          <p>Press, partnerships, playtesting, commissions — reach the studio anytime.</p>
+    <!-- CTA -->
+    <section class="section">
+      <div class="container">
+        <div class="cta-band reveal">
+          <div>
+            <h2>Build with AionForge</h2>
+            <p>Press, partnerships, playtesting, commissions — reach the studio anytime.</p>
+          </div>
+          <a class="btn btn-primary" href="contact.html">Contact the studio</a>
         </div>
-        <a class="btn btn-primary" href="contact.html">Contact the studio</a>
       </div>
     </section>
   </main>
@@ -280,7 +286,7 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div class="footer-brand">
-        <img src="assets/brand/mascot-face.png" width="34" height="34" alt="">
+        <img src="assets/brand/mascot-face.png" width="32" height="32" alt="">
         <div>
           <strong>AionForge</strong>
           <span>Independent game studio</span>
@@ -293,12 +299,34 @@
         <a href="contact.html">Contact</a>
         <a href="https://github.com/AionForgeStudio" rel="noopener noreferrer">GitHub</a>
       </nav>
-      <p class="footer-meta">© <span id="year">2026</span> AionForge. Hosted on GitHub Pages.</p>
+      <p class="footer-meta">© <span id="year">2026</span> AionForge</p>
     </div>
   </footer>
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Nav scroll state
+    const header = document.getElementById('site-header');
+    const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 12);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Reveal on scroll
+    const reveals = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-visible');
+            io.unobserve(e.target);
+          }
+        }
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      reveals.forEach((el) => io.observe(el));
+    } else {
+      reveals.forEach((el) => el.classList.add('is-visible'));
+    }
   </script>
 
   <script type="module">
@@ -319,11 +347,10 @@
             fallback.innerHTML =
               '<p><strong>3D stage failed to start.</strong><br>' +
               '<small>' + msg.replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s])) +
-              '</small><br><small>Static stills are still available below.</small></p>';
+              '</small></p>';
           }
         });
     }
   </script>
-
 </body>
 </html>

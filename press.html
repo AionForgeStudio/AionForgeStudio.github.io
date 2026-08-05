@@ -5,20 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Press — AionForge</title>
   <meta name="description" content="Press kit, logos, and media information for AionForge.">
-  <meta name="theme-color" content="#4e3a72">
+  <meta name="theme-color" content="#07080c">
   <link rel="icon" href="assets/brand/mascot-face.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="site-header">
+  <header class="site-header" id="site-header">
     <div class="container header-inner">
       <a class="brand" href="index.html" aria-label="AionForge home">
-        <img src="assets/brand/mascot-face.png" width="40" height="40" alt="" class="brand-mark">
+        <img src="assets/brand/mascot-face.png" width="32" height="32" alt="" class="brand-mark">
         <span class="brand-name">Aion<span>Forge</span></span>
       </a>
       <nav class="nav" aria-label="Primary">
@@ -26,14 +26,14 @@
         <a href="projects.html">Projects</a>
         <a href="about.html">About</a>
         <a href="press.html" aria-current="page">Press</a>
-        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="nav-cta">Contact</a>
       </nav>
     </div>
   </header>
 
   <main id="main">
     <section class="page-hero">
-      <div class="container">
+      <div class="container reveal">
         <p class="eyebrow">Press</p>
         <h1>Media &amp; press kit</h1>
         <p>Boilerplate, brand marks, and media requests for coverage of AionForge and its projects.</p>
@@ -41,14 +41,14 @@
     </section>
 
     <section class="container contact-grid">
-      <article class="content-card">
+      <article class="content-card reveal">
         <h3>Studio boilerplate</h3>
         <p>
           AionForge is an independent game studio building Minecraft packs, worlds, creature systems,
           and creative tools. The studio focuses on readable silhouettes, material-honest craft,
           and production-ready packaging for real play — from trail gear to epic bosses.
         </p>
-        <p style="margin-top: 1rem;">
+        <p style="margin-top: 1.15rem; color: var(--text-tertiary); font-size: 0.95rem;">
           Public presence:
           <a href="https://aionforgestudio.github.io/">aionforgestudio.github.io</a>
           ·
@@ -56,16 +56,12 @@
         </p>
       </article>
 
-      <article class="content-card">
+      <article class="content-card reveal">
         <h3>Assets</h3>
         <ul class="contact-list">
           <li>
             <strong>Mascot face (pixel)</strong>
             <a href="assets/brand/mascot-face.png">mascot-face.png</a>
-          </li>
-          <li>
-            <strong>Hero portrait</strong>
-            <a href="assets/gallery/hero-portrait.jpg">hero-portrait.jpg</a>
           </li>
           <li>
             <strong>Hero stills</strong>
@@ -94,7 +90,7 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div class="footer-brand">
-        <img src="assets/brand/mascot-face.png" width="34" height="34" alt="">
+        <img src="assets/brand/mascot-face.png" width="32" height="32" alt="">
         <div>
           <strong>AionForge</strong>
           <span>Independent game studio</span>
@@ -107,12 +103,13 @@
         <a href="contact.html">Contact</a>
         <a href="https://github.com/AionForgeStudio" rel="noopener noreferrer">GitHub</a>
       </nav>
-      <p class="footer-meta">© <span id="year">2026</span> AionForge. Hosted on GitHub Pages.</p>
+      <p class="footer-meta">© <span id="year">2026</span> AionForge</p>
     </div>
   </footer>
 
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+  <script type="module">
+    import { initSiteUI } from './js/site-ui.js';
+    initSiteUI();
   </script>
 </body>
 </html>
